@@ -1,5 +1,8 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using LegacyApp.repositories;
+using LegacyApp.services;
+using Validator = LegacyApp.validators.Validator;
 
 namespace LegacyApp
 {
@@ -23,7 +26,6 @@ namespace LegacyApp
             _userCreditService = new UserCreditService();
         }
 
-        //  private User createUser(Client client, DateTime dateOfBirth, string email, string firstName, string lastName)
         public bool AddUser(string firstName, string lastName, string email, DateTime dateOfBirth, int clientId)
         {
 
@@ -36,6 +38,18 @@ namespace LegacyApp
             var clientRepository = _clientRepository;
             var client = clientRepository.GetById(clientId);
 
+            var user = CreateUser(client, dateOfBirth, firstName, lastName, email);
+            
+            if (!Validator.validCredit(user))
+            {
+                return false;
+            }
+
+            UserDataAccess.AddUser(user);
+            return true;
+        }
+        private User CreateUser(Client client, DateTime dateOfBirth, string firstName, string lastName, string email)
+        {
             var user = new User
             {
                 Client = client,
@@ -45,11 +59,18 @@ namespace LegacyApp
                 LastName = lastName
             };
 
-            if (client.Type == "VeryImportantClient")
+            SetCreditLimit(user); 
+
+            return user;
+        }
+
+        private void SetCreditLimit(User user)
+        {
+            if (user.Client.Type == "VeryImportantClient")
             {
                 user.HasCreditLimit = false;
             }
-            else if (client.Type == "ImportantClient")
+            else if (user.Client.Type == "ImportantClient")
             {
                 using (var userCreditService = _userCreditService)
                 {
@@ -61,20 +82,14 @@ namespace LegacyApp
             else
             {
                 user.HasCreditLimit = true;
-                using (var userCreditService = new UserCreditService())
+                using (var userCreditService = _userCreditService)
                 {
                     int creditLimit = userCreditService.GetCreditLimit(user.LastName, user.DateOfBirth);
                     user.CreditLimit = creditLimit;
                 }
             }
-
-            if (!Validator.validCredit(user))
-            {
-                return false;
-            }
-
-            UserDataAccess.AddUser(user);
-            return true;
         }
     }
+    
+   
 }

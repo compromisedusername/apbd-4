@@ -10,13 +10,28 @@ public class UserServiceTests
 
     public UserServiceTests()
     {
-        _userService = new UserService();
+        _userService = new UserService(new FakeClientRepository(), new FakeUserCreditServices());
     }
 
     [Fact]
+    public void AddUser_ReturnFalseWhenUserTooYoung()
+    {
+        var result = _userService.AddUser(
+            null, 
+            "Kowalski", 
+            "kowalski@kowalski.pl",
+            new DateTime(DateTime.Now.Year+20),
+            1
+        );
+
+        // Assert
+        // Assert.Equal(false, result);
+        Assert.False(result);
+    }
+    [Fact]
     public void AddUser_ReturnsFalseWhenFirstNameIsEmpty()
     {
-        
+
 
         // Act
         var result = _userService.AddUser(
@@ -30,18 +45,42 @@ public class UserServiceTests
         // Assert
         // Assert.Equal(false, result);
         Assert.False(result);
+    }[Fact]
+    public void AddUser_ReturnsFalseWhenSecondNameIsEmpty()
+    {
+
+
+        // Act
+        var result = _userService.AddUser(
+            "Imie", 
+            null, 
+            "kowalski@kowalski.pl",
+            DateTime.Parse("2000-01-01"),
+            1
+        );
+
+        // Assert
+        // Assert.Equal(false, result);
+        Assert.False(result);
     }
     
-    // 
-    // 
-    // 
-    // 
-    // 
-    // AddUser_ReturnsFalseWhenNormalClientWithNoCreditLimit
-    // AddUser_ThrowsExceptionWhenUserDoesNotExist
-    // AddUser_ThrowsExceptionWhenUserNoCreditLimitExistsForUser
 
 
+    [Fact]
+    public void AddUser_ReturnsFalseWhenNormalClientWithNoCreditLimit()
+    {
+        var result = _userService.AddUser(
+            
+            "Bartek",
+            "Kowalski", 
+            "malewski@gmail.pl",
+            DateTime.Parse("2000-01-01"),
+            1
+        );
+        //Assert
+        Assert.False(result);
+    }
+    
     [Fact]
     public void AddUser_ReturnsTrueWhenImportantClient()
     {
@@ -62,8 +101,8 @@ public class UserServiceTests
         var result = _userService.AddUser(
             
             "Bartek",
-            "Andrzejewicz", 
-            "andrzejewicz@wp.pl",
+            "Kwiatkowski", 
+            "kwiatkowski@wp.pl",
             DateTime.Parse("2000-01-01"),
             6
         );
@@ -110,12 +149,25 @@ public class UserServiceTests
     {
         // Act & Assert
         Assert.Throws<ArgumentException>(() => _userService.AddUser(
-            "Kowalski",
+            "NonExists",
             "Niesitniejacyklient!",
             "kowalski@kowalski.pl",
             DateTime.Parse("2000-01-01"),
             100
         ));
     }
+
+    [Fact]
+    public void AddUser_ThrowsArgumentExceptionWhenUserNoCreditLimitExistsForUser()
+    {
+        Assert.Throws<ArgumentException>(() => _userService.AddUser(
+            "Kwiatkowski",
+            "Niesitniejacyklient!",
+            "kowalski@kowalski.pl",
+            DateTime.Parse("2000-01-01"),
+            6
+        ));
+    }
+  
 }
 
