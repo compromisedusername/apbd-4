@@ -1,31 +1,39 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace LegacyApp
 {
+
+
     public class UserService
     {
+        private IClientRepository _clientRepository;
+        private IUserCreditService _userCreditService;
+
+        public UserService(IClientRepository clientRepository, IUserCreditService userCreditService)
+        {
+            _clientRepository = clientRepository;
+            _userCreditService = userCreditService;
+        }
+
+        [Obsolete]
+        public UserService()
+        {
+            _clientRepository = new ClientRepository();
+            _userCreditService = new UserCreditService();
+        }
+
+        //  private User createUser(Client client, DateTime dateOfBirth, string email, string firstName, string lastName)
         public bool AddUser(string firstName, string lastName, string email, DateTime dateOfBirth, int clientId)
         {
-            if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName))
+
+            if (!Validator.validName(firstName, lastName) || !Validator.validEmail(email) || !Validator.validAge(dateOfBirth)) 
             {
                 return false;
             }
 
-            if (!email.Contains("@") && !email.Contains("."))
-            {
-                return false;
-            }
-
-            var now = DateTime.Now;
-            int age = now.Year - dateOfBirth.Year;
-            if (now.Month < dateOfBirth.Month || (now.Month == dateOfBirth.Month && now.Day < dateOfBirth.Day)) age--;
-
-            if (age < 21)
-            {
-                return false;
-            }
-
-            var clientRepository = new ClientRepository();
+            
+            var clientRepository = _clientRepository;
             var client = clientRepository.GetById(clientId);
 
             var user = new User
@@ -43,7 +51,7 @@ namespace LegacyApp
             }
             else if (client.Type == "ImportantClient")
             {
-                using (var userCreditService = new UserCreditService())
+                using (var userCreditService = _userCreditService)
                 {
                     int creditLimit = userCreditService.GetCreditLimit(user.LastName, user.DateOfBirth);
                     creditLimit = creditLimit * 2;
@@ -60,7 +68,7 @@ namespace LegacyApp
                 }
             }
 
-            if (user.HasCreditLimit && user.CreditLimit < 500)
+            if (!Validator.validCredit(user))
             {
                 return false;
             }
